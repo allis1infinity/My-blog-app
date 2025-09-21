@@ -29,6 +29,17 @@ def save_posts(posts):
         json.dump(posts, file, indent=4)
 
 
+def fetch_post_by_id(post_id):
+    """
+    Finds a post by its ID from the loaded posts.
+    """
+    posts = load_posts()
+    for post in posts:
+        if post['id'] == post_id:
+            return post
+    return None
+
+
 # Define the route for the index page
 @app.route('/')
 def index():
@@ -83,6 +94,54 @@ def add():
 
     # On a GET request, simply render the form
     return render_template('add.html')
+
+# Define the route for the delete functionality
+@app.route('/delete/<int:post_id>', methods=['POST'])
+def delete_post(post_id):
+    """Deletes a specific blog post by its ID."""
+    # Load existing posts from the JSON file
+    blog_posts = load_posts()
+
+    # Create a new list with all posts except the one to be deleted
+    updated_posts = [post for post in blog_posts if post['id'] != post_id]
+
+    # Save the updated list back to the JSON file
+    save_posts(updated_posts)
+
+    # Redirect the user to the main blog page
+    return redirect(url_for('index'))
+
+
+@app.route('/update/<int:post_id>', methods=['GET', 'POST'])
+def update_post(post_id):
+    # Fetch the specific post using the helper function
+    post_to_edit = fetch_post_by_id(post_id)
+
+    if post_to_edit is None:
+        # If the post is not found, return 404
+        return "Post not found", 404
+
+    if request.method == 'POST':
+        # Load all posts
+        blog_posts = load_posts()
+
+        # Find the same post in the list to update it
+        for post in blog_posts:
+            if post['id'] == post_id:
+                post['title'] = request.form.get('title')
+                post['author'] = request.form.get('author')
+                post['content'] = request.form.get('content')
+                break  # we found and updated the post
+
+        # Save the updated list back to JSON
+        save_posts(blog_posts)
+
+        # Redirect back to main blog page
+        return redirect(url_for('index'))
+
+    # Else, it's a GET request
+    # So display the update.html page
+    return render_template('update.html', post=post_to_edit)
 
 
 # Run the app
